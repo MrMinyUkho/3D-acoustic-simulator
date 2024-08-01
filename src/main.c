@@ -32,14 +32,23 @@ void Init() {
 
     smInit();
 
-    loadObject(".\\untitled.obj", &obj);
-    loadObject(".\\map.obj", &map);
-    smAddObject(&obj);
-    smAddObject(&map);
+    //loadObject(".\\untitled.obj", &obj);
+    //loadObject(".\\map.obj", &map);
+    //smAddObject(&obj);
+    //smAddObject(&map);
 
-    scaleMatrix(map.transform, -1.0f, 1.0f, 1.0f);
-    translateMatrix(map.transform, 0.0f, -100.0f, 0.0f);
+    //scaleMatrix(map.transform, -1.0f, 1.0f, 1.0f);
+    //translateMatrix(map.transform, 0.0f, -100.0f, 0.0f);
     //translateMatrix(map.transform, 0.0f, -3.0f, 0.0f);
+
+    Object* multiObj;
+    int objCount;
+
+    loadObjects(".\\room.obj", &multiObj, &objCount);
+
+    for(int i = 0; i < objCount; ++i) {
+        smAddObject(multiObj + i);
+    }
 
     applyIdentityMatrix(volumePos);
     scaleMatrix(volumePos, 2.0f, 2.0f, 2.0f);
@@ -66,8 +75,8 @@ void update(HWND hwnd) {
 
     InputProcess(hwnd);
 
-    rotateMatrix(obj.transform, 0.3f, 0.0f, 1.0f, 0.0f);
-    translateMatrix(obj.transform, 0.05f, 0.0f, 0.0f);
+    //rotateMatrix(obj.transform, 0.3f, 0.0f, 1.0f, 0.0f);
+    //translateMatrix(obj.transform, 0.05f, 0.0f, 0.0f);
 
     smDrawScene();
 

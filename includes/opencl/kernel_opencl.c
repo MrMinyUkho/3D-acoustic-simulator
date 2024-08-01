@@ -219,7 +219,7 @@ void initClProgram(ull size_x, ull size_y, ull size_z, int drawStep, GLuint VBO1
 
     printf("\n%s\n", extensions);
 
-    if (!(int)strstr(extensions, "cl_khr_gl_sharing")) {
+    if (strstr(extensions, "cl_khr_gl_sharing") == 0) {
         printf("OpenCL-OpenGL interop not supported.\n");
         exit(EXIT_FAILURE);
     }

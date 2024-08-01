@@ -2,6 +2,7 @@
 
 layout(location = 0) out vec4 FragColor;
 
+in vec3 ViewPos;
 in vec3 FragPos;
 in vec3 Normal;
 
@@ -24,7 +25,7 @@ void main() {
 
     // Specular lighting
     float specularStrength = 0.5;
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(ViewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * lightColor;

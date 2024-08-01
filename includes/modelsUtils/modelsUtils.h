@@ -40,6 +40,7 @@ typedef struct objct {
 } Object;
 
 void loadObject(const char* filename, Object* obj);
+void loadObjects(const char* filename, Object** obj, int* object_count);
 void loadMtl(const char* filename, MtlMaterial** materials, int* material_count);
 
 void drawObject(const Object *obj, const float *view, const float *proj);

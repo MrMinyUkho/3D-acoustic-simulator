@@ -54,6 +54,8 @@ void setupObjectBuffers(Object *obj) {
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0); // Сброс связки VAO
+    free(vertex);
+    free(normals);
 }
 
 void loadObject(const char *filename, Object* obj) {
@@ -64,10 +66,10 @@ void loadObject(const char *filename, Object* obj) {
     else printf("OK\nSucces open %s model file\n", filename);
     printf("Load object data... ");
 
-    obj->name = filename;
-    obj->color[0] = 0.2;
-    obj->color[1] = 0.9;
-    obj->color[2] = 0.4;
+    //obj->name = filename;
+    //obj->color[0] = 0.2;
+    //obj->color[1] = 0.9;
+    //obj->color[2] = 0.4;
 
     char line[200];
     Vec3 *vertices = malloc(sizeof(Vec3) * 256);
@@ -245,7 +247,6 @@ void loadObjects(const char* filename, Object** obj, int* object_count) {
         }
 
         if (strncmp(line, "o ", 2) == 0) {
-            if(*object_count != 0) setupObjectBuffers(obj[*object_count-1]);
             (*object_count)++;
             *obj = (Object*)realloc(*obj, sizeof(Object)*(*object_count));
 
@@ -256,40 +257,38 @@ void loadObjects(const char* filename, Object** obj, int* object_count) {
             }
             char* name = malloc(len);
             name[len-1] = '\0';
-            for(int i = 2; i < 2+len-1; ++i) name[i-7] = line[i];
+            for(int i = 2; i < 2+len-1; ++i) name[i-2] = line[i];
 
             (*obj)[*object_count-1].name = name;
 
-            (*obj)[*object_count-1].faceCount = 1;
-            (*obj)[*object_count-1].vertCount = 1;
-            (*obj)[*object_count-1].normCount = 1;
+            (*obj)[*object_count-1].faceCount = 0;
+            (*obj)[*object_count-1].vertCount = 0;
+            (*obj)[*object_count-1].normCount = 0;
 
-            (*obj)[*object_count-1].faces    = (Face*)malloc(sizeof(Face));
-            (*obj)[*object_count-1].vertices = (Vec3*)malloc(sizeof(Vec3));
-            (*obj)[*object_count-1].normals  = (Vec3*)malloc(sizeof(Vec3));
+            (*obj)[*object_count-1].faces    = (Face*)malloc(sizeof(Face)*4);
+            (*obj)[*object_count-1].vertices = (Vec3*)malloc(sizeof(Vec3)*4);
+            (*obj)[*object_count-1].normals  = (Vec3*)malloc(sizeof(Vec3)*4);
 
-            alloc_face = 1;
-            alloc_vert = 1;
-            alloc_norm = 1;
+            alloc_face = 4;
+            alloc_vert = 4;
+            alloc_norm = 4;
 
         } else if (strncmp(line, "v ", 2) == 0) {
-            sscanf_s(line, "v %f %f %f",
-                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].x,
-                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].y,
-                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].z
-            );
+            (*obj)[*object_count-1].vertCount++;
+
             if(alloc_vert == (*obj)[*object_count-1].vertCount) {
                 alloc_vert*=2;
                 (*obj)[*object_count-1].vertices =
                     (Vec3*)realloc((*obj)[*object_count-1].vertices, sizeof(Vec3)*alloc_vert);
             }
-            (*obj)[*object_count-1].vertCount++;
-        } else if (strncmp(line, "vn ", 3) == 0) {
-            sscanf_s(line, "vn %f %f %f",
-                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].x,
-                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].y,
-                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].z
+
+            sscanf_s(line, "v %f %f %f",
+                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].x,
+                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].y,
+                &(*obj)[*object_count-1].vertices[(*obj)[*object_count-1].vertCount-1].z
             );
+        } else if (strncmp(line, "vn ", 3) == 0) {
+            (*obj)[*object_count-1].normCount++;
 
             if(alloc_norm == (*obj)[*object_count-1].normCount) {
                 alloc_norm*=2;
@@ -297,14 +296,29 @@ void loadObjects(const char* filename, Object** obj, int* object_count) {
                     (Vec3*)realloc((*obj)[*object_count-1].normals, sizeof(Vec3)*alloc_norm);
             }
 
-            (*obj)[*object_count-1].normCount++;
+            sscanf_s(line, "vn %f %f %f",
+                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].x,
+                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].y,
+                &(*obj)[*object_count-1].normals[(*obj)[*object_count-1].normCount-1].z
+            );
 
-        } else if (strncmp(line, "f ", 3) == 0) {
+
+
+        } else if (strncmp(line, "f ", 2) == 0) {
+            (*obj)[*object_count-1].faceCount++;
+
+            if(alloc_face == (*obj)[*object_count-1].faceCount) {
+                alloc_face*=2;
+                (*obj)[*object_count-1].faces =
+                    (Face*)realloc((*obj)[*object_count-1].faces, sizeof(Face)*alloc_face);
+            }
+
             Face* face = &(*obj)[*object_count-1].faces[(*obj)[*object_count-1].faceCount-1];
             sscanf_s(line, "f %u//%u %u//%u %u//%u",
                                   &face->vertices[0], &face->normals[0],
                                   &face->vertices[1], &face->normals[1],
                                   &face->vertices[2], &face->normals[2]);
+
             face->vertices[0]--;
             face->normals[0]--;
             face->vertices[1]--;
@@ -312,13 +326,6 @@ void loadObjects(const char* filename, Object** obj, int* object_count) {
             face->vertices[2]--;
             face->normals[2]--;
 
-            if(alloc_face == (*obj)[*object_count-1].faceCount) {
-                alloc_face*=2;
-                (*obj)[*object_count-1].faces =
-                    (Face*)realloc((*obj)[*object_count-1].faces, sizeof(Vec3)*alloc_face);
-            }
-
-            (*obj)[*object_count-1].faceCount++;
         } else if(strncmp(line, "usemtl ", 7) == 0) {
 
             int len = 0;
@@ -328,10 +335,46 @@ void loadObjects(const char* filename, Object** obj, int* object_count) {
             }
             char* name = malloc(len);
             name[len-1] = '\0';
-            for(int i = 2; i < 2+len-1; ++i) name[i-7] = line[i];
+            for(int i = 7; i < 7+len-1; ++i) name[i-7] = line[i];
 
+            for(int i = 0; i < materialCount; ++i) {
+                if(strncmp(name, materials[i].matName, len) == 0) {
+                    (*obj)[*object_count-1].color = materials + i;
+                }
+            }
+        } else if(strncmp(line, "mtllib ", 7) == 0) {
 
+            int len = 0;
+            for(int i = 7; i < 200; ++i) {
+                len++;
+                if(line[i] == '\n') break;
+            }
+            char* name = malloc(len);
+            name[len-1] = '\0';
+            for(int i = 7; i < 7+len-1; ++i) name[i-7] = line[i];
+
+            loadMtl(name, &materials, &materialCount);
         }
+    }
+
+    for(int i = 0; i < *object_count; ++i) {
+        int vNum = 0;
+        int nNum = 0;
+        for(int j = i-1; j >= 0; --j) {
+            vNum += (*obj + j)->vertCount;
+            nNum += (*obj + j)->normCount;
+        }
+        for(int j = 0; j < (*obj + i)->faceCount; ++j) {
+            (*obj + i)->faces[j].normals[0] -= nNum;
+            (*obj + i)->faces[j].normals[1] -= nNum;
+            (*obj + i)->faces[j].normals[2] -= nNum;
+            (*obj + i)->faces[j].vertices[0] -= vNum;
+            (*obj + i)->faces[j].vertices[1] -= vNum;
+            (*obj + i)->faces[j].vertices[2] -= vNum;
+        }
+
+        setupObjectBuffers(*obj + i);
+        applyIdentityMatrix((*obj + i)->transform);
     }
 }
 
@@ -360,7 +403,12 @@ void drawObject(const Object *obj, const float *view, const float *proj) {
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, proj);
 
     GLint colorLoc = glGetUniformLocation(basicShader, "color");
-    glUniform3fv(colorLoc, 1, obj->color);
+    float color[3] = {
+        obj->color->diffuse.x,
+        obj->color->diffuse.y,
+        obj->color->diffuse.z
+    };
+    glUniform3fv(colorLoc, 1, color);
 
     // Отрисовка
     glDrawArrays(GL_TRIANGLES, 0, obj->faceCount * 3);
