@@ -37,12 +37,13 @@
 
 #include <time.h>
 #include <CL/cl.h>
-#include <CL/cl_gl.h>
 #include <stdio.h>
+#include <float.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include <CL/cl_gl.h>
 #include <corecrt_math.h>
 
 #include "glad/glad.h"

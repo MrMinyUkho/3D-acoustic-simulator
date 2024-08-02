@@ -35,7 +35,7 @@ ull getOffsetI(const int size_x, const int size_y, const int size_z, const int x
     return (size_x * size_z) * y + size_x * z + x;
 }
 
-void asInitCellVolume(const float w, const float h, const float l, const float density, const int drawStep) {
+void asInitCellVolume(Object* VolumeBaseObjects, const int objCount, const float density, const int drawStep) {
 
     if(drawStep < 1) {
         printf("Ну как бы если хочешь шаг отрисовки меньше 1, то пожалуйста, лично я не против\n");
@@ -44,15 +44,44 @@ void asInitCellVolume(const float w, const float h, const float l, const float d
 
     // Create Volume
 
+
+    float xmin = FLT_MAX, xmax = -FLT_MAX;
+    float ymin = FLT_MAX, ymax = -FLT_MAX;
+    float zmin = FLT_MAX, zmax = -FLT_MAX;
+
+    for(int i = 0; i < objCount; ++i) {
+        for(int j = 0; j < (VolumeBaseObjects + i)->vertCount; ++j) {
+
+            Vec3 vert = (VolumeBaseObjects + i)->vertices[j];
+
+            xmin = xmin > vert.x ? vert.x : xmin;
+            xmax = xmax < vert.x ? vert.x : xmax;
+
+            ymin = ymin > vert.y ? vert.y : ymin;
+            ymax = ymax < vert.y ? vert.y : ymax;
+
+            zmin = zmin > vert.z ? vert.z : zmin;
+            zmax = zmax < vert.z ? vert.z : zmax;
+        }
+    }
+
+    float w = xmax - xmin;
+    float h = ymax - ymin;
+    float l = zmax - zmin;
+
+    printf("\n\ncV lin size %f %f %f\n", w, h, l);
+
     cV.size_x = density * w;
     cV.size_y = density * h;
     cV.size_z = density * l;
+
+    printf("\ncV size %d %d %d\n", cV.size_x, cV.size_y, cV.size_z);
 
     const ull vboSizeX = cV.size_x / drawStep;
     const ull vboSizeY = cV.size_y / drawStep;
     const ull vboSizeZ = cV.size_z / drawStep;
 
-    printf("VBO size %lld %lld %lld\n", vboSizeX, vboSizeY, vboSizeZ);
+    printf("\nVBO size %lld %lld %lld\n\n", vboSizeX, vboSizeY, vboSizeZ);
 
     vboSize = vboSizeX * vboSizeY * vboSizeZ;
 
@@ -64,13 +93,12 @@ void asInitCellVolume(const float w, const float h, const float l, const float d
             for(int z = 0; z < vboSizeZ; ++z) {
                 const ull draw_offset = getOffsetI(vboSizeX, vboSizeY, vboSizeZ, x, y, z);
 
-                vboPoint[draw_offset].x = w / vboSizeX * x - w/2;
-                vboPoint[draw_offset].y = h / vboSizeY * y - h/2;
-                vboPoint[draw_offset].z = l / vboSizeZ * z - l/2;
+                vboPoint[draw_offset].x = w / vboSizeX * x + xmin;
+                vboPoint[draw_offset].y = h / vboSizeY * y + ymin;
+                vboPoint[draw_offset].z = l / vboSizeZ * z + zmin;
             }
         }
     }
-
 
     // GPU section
 
@@ -106,11 +134,47 @@ void asInitCellVolume(const float w, const float h, const float l, const float d
 
     glBindVertexArray(0);
 
-    free(vboPoint);
 
     // Init OpenCL
 
-    initClProgram(cV.size_x, cV.size_y, cV.size_z, drawStep, ampVBO);
+    uint16_t faceCount = 0;
+    for(int i = 0; i < objCount; ++i) {
+        faceCount += (VolumeBaseObjects+i)->faceCount;
+    }
+
+    float* verts     = malloc(faceCount*9*sizeof(float));
+    float* materials = malloc(objCount*3*sizeof(float));
+    int16_t* matIdx  = malloc(faceCount*sizeof(int16_t));
+
+    int _i = 0;
+    for(int i = 0; i < objCount; ++i) {
+
+        materials[i*3 + 0] = (VolumeBaseObjects+i)->color->diffuse.x;
+        materials[i*3 + 1] = (VolumeBaseObjects+i)->color->diffuse.y;
+        materials[i*3 + 2] = (VolumeBaseObjects+i)->color->diffuse.z;
+
+        for(int j = 0; j < (VolumeBaseObjects+i)->faceCount; ++j) {
+            Vec3* vert   = (VolumeBaseObjects+i)->vertices;
+            GLuint* face = (VolumeBaseObjects+i)->faces->vertices;
+
+            verts[_i * 9 + 0] = vert[face[0]].x;
+            verts[_i * 9 + 1] = vert[face[0]].y;
+            verts[_i * 9 + 2] = vert[face[0]].z;
+
+            verts[_i * 9 + 3] = vert[face[1]].x;
+            verts[_i * 9 + 4] = vert[face[1]].y;
+            verts[_i * 9 + 5] = vert[face[1]].z;
+
+            verts[_i * 9 + 6] = vert[face[2]].x;
+            verts[_i * 9 + 7] = vert[face[2]].y;
+            verts[_i * 9 + 8] = vert[face[2]].z;
+
+            matIdx[_i] = i;
+            _i++;
+        }
+    }
+
+    initClProgram(cV.size_x, cV.size_y, cV.size_z, drawStep, ampVBO, volumeVBO, verts, materials, matIdx, faceCount, objCount);
 
     // Init thread
 
@@ -121,8 +185,7 @@ void asInitCellVolume(const float w, const float h, const float l, const float d
     computeThread = CreateThread(NULL, 0, asCompute, NULL, 0, NULL);
     SetEvent(pauseEvent);
 
-    // Init OpenCL
-
+    free(vboPoint);
 }
 
 void asDrawVolume(const float* model, const float* view, const float* projection) {
@@ -167,10 +230,10 @@ DWORD WINAPI asCompute() {
 
         WaitForSingleObject(pauseEvent, INFINITE);
 
-        setAmpData(0.5f,0.5f,0.5f,sinf(t)*500);
+        setAmpData(0.5f,0.5f,0.5f,sinf(t)*250);
         tickCompute();
-        t+=0.1f;
-        //Sleep(100);
+        t+=0.2f;
+        Sleep(100);
     }
 
     return 0;

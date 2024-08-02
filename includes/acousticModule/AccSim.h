@@ -5,6 +5,8 @@
 #ifndef ACCSIM_H
 #define ACCSIM_H
 
+#include "../modelsUtils/modelsUtils.h"
+
 typedef struct cell {
     float x, y, z;
 } asCellPos;
@@ -20,7 +22,7 @@ typedef struct cellVolume {
     int size_z;
 } asCellsVolume;
 
-void asInitCellVolume( float w, float h, float l, float density, int drawStep);
+void asInitCellVolume(Object* VolumeBaseObjects, int objCount, float density, int drawStep);
 unsigned long long getOffsetS(int x, int y, int z);
 void asDrawVolume(const float* model, const float* view, const float* projection);
 ull getOffsetS(int x, int y, int z);

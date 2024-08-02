@@ -11,7 +11,7 @@ typedef struct cellToCompute {
     float vel, amp, weight;
 } CellToCompute;
 
-void initClProgram(ull size_x, ull size_y, ull size_z, int drawStep, GLuint VBO1);
+void initClProgram(ull size_x, ull size_y, ull size_z, int drawStep, GLuint VBO1, GLuint pointsVBO, float* verticies, float* matrls, int16_t* matIdx, uint16_t faceNum, uint16_t matCount);
 void tickCompute();
 void setAmpData(float x, float y, float z, float amp);
 void getClFreeMem(ull* total_mem, ull* free_mem);

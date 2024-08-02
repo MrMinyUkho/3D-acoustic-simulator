@@ -56,7 +56,7 @@ void Init() {
     Camera* cam = malloc(sizeof(Camera));
 
     cam->aspect = (float)800/600;
-    cam->fov = 90;
+    cam->fov = 75;
 
     cam->proj = malloc(sizeof(float)*16);
     cam->transform = malloc(sizeof(float)*16);
@@ -64,7 +64,7 @@ void Init() {
     applyIdentityMatrix(cam->transform);
     smAddCamera(cam);
 
-    asInitCellVolume(10, 10, 10, 20, 2);
+    asInitCellVolume(multiObj, objCount, 50, 1);
 
     timer_prev = clock();
 }
